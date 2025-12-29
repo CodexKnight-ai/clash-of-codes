@@ -10,8 +10,8 @@ import { GoogleAnalytics } from "nextjs-google-analytics";
 export function Providers({ children }: { children: React.ReactNode }) {
 	return (
 		<ReduxProvider store={store}>
-			<GoogleAnalytics trackPageViews />
-			<GoogleOAuthProvider clientId="910407207351-rujuf61sg8t5jk5vco6cll51474fgm5v.apps.googleusercontent.com">
+			{/* <GoogleAnalytics trackPageViews /> */}
+			<GoogleOAuthProvider clientId="805198101040-vreklmpqqtaqpfueufs5a2hrh1fjiu6o.apps.googleusercontent.com">
 				<ChakraProvider theme={theme}>{children}</ChakraProvider>
 			</GoogleOAuthProvider>
 		</ReduxProvider>

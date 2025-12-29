@@ -1,119 +1,115 @@
-import { Button, useEditable } from "@chakra-ui/react";
+import { Button } from "@chakra-ui/react";
 import Image from "next/image";
 import GoogleIcon from "../../styles/Icons/BsGoogle.svg";
-import { useGoogleLogin, useGoogleOneTapLogin } from "@react-oauth/google";
-import { useCallback, useEffect, useState } from "react";
+import { useGoogleLogin, TokenResponse } from "@react-oauth/google";
+import { MouseEventHandler } from "react";
+import { useState, useEffect } from "react";
 import { googleLogout } from "@react-oauth/google";
 import { customFetch, getServerUrl, getUserData } from "@/app/util/functions";
 import { useAppDispatch } from "@/app/util/hooks";
 import { update as updateUser } from "@/app/util/userSlice";
 import { UserOnClient } from "@/app/util/types";
-function getBtn(login: () => void, logout: () => void, isLoading: boolean) {
-	let btn;
-	if (document && document.cookie.includes("server_token")) {
-		btn = (
-			<Button
-				size={{ md: "md", sm: "xs" }}
-				fontFamily={"arial"}
-				borderRadius={16}
-				margin={"auto"}
-				paddingX={4}
-				paddingY={2}
-				onClick={logout}
-				variant={"outline"}
-				isLoading={isLoading}
-			>
-				Logout
-			</Button>
-		);
-	} else {
-		btn = (
-			<Button
-				size={{ md: "md", sm: "xs" }}
-				fontFamily={"arial"}
-				borderRadius={16}
-				margin={"auto"}
-				paddingX={4}
-				paddingY={2}
-				rightIcon={<Image alt="to" src={GoogleIcon} width={16} />}
-				onClick={login}
-				isLoading={isLoading}
-			>
-				Login
-			</Button>
-		);
-	}
 
-	return btn;
-}
 export default function LoginBtn() {
 	const [isLoading, setIsLoading] = useState(false);
-	const [oneTapDisabled, setOneTapDisabled] = useState(true);
-	const userDispatch = useAppDispatch();
+	const [isLoggedIn, setIsLoggedIn] = useState(false);
+	const dispatch = useAppDispatch();
 
-	const login = useCallback(async () => {
-		// clear g_state cookie
-		// document.cookie =
-		// 	"g_state=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-
-		setOneTapDisabled(false);
-	}, []);
-	// console.log(document.cookie);
-	const logout = useCallback(() => {
-		setOneTapDisabled(true);
-		// userDispatch(updateUser(null));
-
-		googleLogout();
-		document.cookie =
-			"google_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-		setBtn(getBtn(login, logout, isLoading));
-		document.cookie =
-			"server_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-		setBtn(getBtn(login, logout, isLoading));
-		// eslint-disable-next-line react-hooks/exhaustive-deps
+	useEffect(() => {
+		// Check if user is already logged in
+		const checkAuth = () => {
+			const hasServerToken = document.cookie.includes("server_token");
+			setIsLoggedIn(hasServerToken);
+		};
+		checkAuth();
+		window.addEventListener('focus', checkAuth);
+		return () => window.removeEventListener('focus', checkAuth);
 	}, []);
 
-	let [btn, setBtn] = useState(getBtn(login, logout, isLoading));
-
-	useGoogleOneTapLogin({
-		onSuccess: async (credentialResponse) => {
+	const handleLogin = useGoogleLogin({
+		scope: 'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
+		onSuccess: async (tokenResponse) => {
 			setIsLoading(true);
-			var now = new Date();
-			var time = now.getTime();
+			try {
+				// First, get user info using the access token
+				const userInfo = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+					headers: {
+						'Authorization': `Bearer ${tokenResponse.access_token}`,
+					},
+				});
 
-			var expireTime = time + 1000 * 60 * 60 * 24 * 30;
-			now.setTime(expireTime);
+				if (!userInfo.ok) {
+					throw new Error('Failed to fetch user info from Google');
+				}
 
-			document.cookie = `google_token=${
-				credentialResponse.credential
-			}; expires=${now.toUTCString()}; path=/;`;
-			// console.log("Login Success");
-			const res = await customFetch("/login");
-			if (res.status !== 200) {
-				console.error("Login Failed ");
-			} else {
-				// console.log("Login Success 2");
-				const serverToken = await res.text();
-				document.cookie = `server_token=${serverToken}`;
-				const user = getUserData();
-				// console.log(user);
-				userDispatch(updateUser(user as UserOnClient));
+				const userData = await userInfo.json();
+
+				// Now send the token to our backend
+				const res = await fetch('http://localhost:3001/login', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						'Accept': 'application/json',
+					},
+					body: JSON.stringify({
+						token: tokenResponse.access_token,
+						user: userData
+					}),
+					credentials: 'include',
+				});
+
+				if (!res.ok) {
+					const error = await res.text();
+					throw new Error(error || 'Login failed');
+				}
+
+				const data = await res.json();
+
+				// Store the token in a cookie
+				document.cookie = `server_token=${data.token}; path=/; max-age=2592000; SameSite=Lax; Secure`;
+
+				// Update the Redux store with user data
+				dispatch(updateUser(data.user));
+				setIsLoggedIn(true);
+			} catch (error) {
+				console.error('Login error:', error);
+				// Handle error (e.g., show error message to user)
+			} finally {
+				setIsLoading(false);
 			}
-			setBtn(getBtn(login, logout, isLoading));
-
+		},
+		onError: (error) => {
+			console.error('Google login error:', error);
 			setIsLoading(false);
 		},
-
-		onError: () => {
-			console.log("Login Failed");
-		},
-
-		disabled: oneTapDisabled,
+		flow: 'implicit',
 	});
-	useEffect(() => {
-		setBtn(getBtn(login, logout, isLoading));
 
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [isLoading]);
-	return <div>{btn}</div>;
+	const handleLogout = () => {
+		googleLogout();
+		document.cookie = "google_token=; expires=0; path=/";
+		document.cookie = "server_token=; expires=0; path=/";
+		dispatch(updateUser(null));
+		setIsLoggedIn(false);
+	};
+	const handleLoginClick: MouseEventHandler<HTMLButtonElement> = () => {
+		handleLogin(); // Call the Google login function
+	};
+
+	return (
+		<Button
+			size={{ md: "md", sm: "xs" }}
+			fontFamily={"arial"}
+			borderRadius={16}
+			margin={"auto"}
+			paddingX={4}
+			paddingY={2}
+			rightIcon={!isLoggedIn ? <Image alt="Google" src={GoogleIcon} width={16} height={16} /> : undefined}
+			onClick={isLoggedIn ? handleLogout : handleLoginClick}
+			isLoading={isLoading}
+			variant={isLoggedIn ? "outline" : "solid"}
+		>
+			{isLoggedIn ? "Logout" : "Login with Google"}
+		</Button>
+	);
 }
