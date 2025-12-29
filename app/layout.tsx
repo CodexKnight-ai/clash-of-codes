@@ -10,7 +10,7 @@ import Head from "next/head";
 
 export const metadata: Metadata = {
 	title: "Clash of Codes",
-	metadataBase: new URL("https://clash-of-codes-five.vercel.app"),
+	metadataBase: new URL("https://clash-of-codes2026.vercel.app"),
 	description: "The Official Live Leaderboard for Clash of Codes ",
 	keywords: [
 		"Clash of Codes",
@@ -42,7 +42,7 @@ export const metadata: Metadata = {
 			width: 91,
 			height: 90,
 		},
-		url: "https://clash-of-codes-five.vercel.app",
+		url: "https://clash-of-codes2026.vercel.app",
 	},
 };
 

@@ -45,7 +45,7 @@ export default function LoginBtn() {
 				const userData = await userInfo.json();
 
 				// Now send the token to our backend
-				const res = await fetch('http://localhost:3001/login', {
+				const res = await fetch('/login', {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json',

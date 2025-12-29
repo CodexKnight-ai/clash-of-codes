@@ -14,7 +14,7 @@ import {
 export function getServerUrl(url: string) {
 	let SERVER_URL;
 	if (process.env.NODE_ENV === "production") {
-		SERVER_URL = "https://clash-of-codes.onrender.com";
+		SERVER_URL = "https://clash-of-codes-api-0p6t.onrender.com";
 	} else {
 		SERVER_URL = "http://localhost:3001";
 	}
@@ -24,7 +24,7 @@ export function getServerUrl(url: string) {
 export function getSocketsUrl(url: string) {
 	let SOCKET_URL;
 	if (process.env.NODE_ENV === "production") {
-		SOCKET_URL = "wss://clash-of-codes.onrender.com";
+		SOCKET_URL = "wss://clash-of-codes-api-0p6t.onrender.com";
 	} else {
 		SOCKET_URL = "ws://localhost:3001";
 	}
