@@ -38,13 +38,13 @@ export default function ClanMemberItem({
 			<div className={styles.smallTextWrapper}>
 				<div className={styles.smallText}>Score</div>
 				<div className={styles.score}>
-					<SpecialTxt>{Math.round(score)}</SpecialTxt>
+					<SpecialTxt>{score ? score : "NA"}</SpecialTxt>
 				</div>
 			</div>
 			<div className={styles.smallTextWrapper}>
 				<div className={styles.smallText}>Solved</div>
 				<div className={styles.problemSolved}>
-					<SpecialTxt>{problemsSolved}</SpecialTxt>
+					<SpecialTxt>{problemsSolved ? problemsSolved : "NA"}</SpecialTxt>
 				</div>
 			</div>
 		</div>

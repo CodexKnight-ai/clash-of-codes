@@ -66,6 +66,9 @@ export default function ClanCard({
 				<div className={styles.clanScore}>
 					<SpecialTxt>Problems Solved: {solvedProblems}</SpecialTxt>
 				</div>
+				<div className={styles.clanScore}>
+					<SpecialTxt>Total Score: {clanScore}</SpecialTxt>
+				</div>
 				{isLink && (
 					<Text mt="1" fontSize={"small"} color={"gray.400"}>
 						Click to see more <ChevronRightIcon h={6} w={6} />
